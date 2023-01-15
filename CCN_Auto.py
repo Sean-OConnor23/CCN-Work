@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import CCN_Shipping
 import CCN_Edit
+import CCN_Custom_Formula
 
 class CCN_Automation:
 
@@ -68,47 +69,46 @@ class CCN_Automation:
     
         #Returns a dictionary of lists with all of the current products offered
         products = CCN_Edit.CCN_Products.get_product_info()
+        write_out_form = []
 
         for row_num, row_data in self.csv_df.iterrows():
             item_type = row_data['Lineitem name']
+            
+            #Create instance of class for calculating formula and writing out. Used in product label generation and formula output
+            formula_calculator = CCN_Custom_Formula.CCN_Formula_Parser(item_type, row_data, products, self.csv_df, row_num)
+            
             #Checking to see if row has all requirements for shipping label population
             if self.shipping_val.get() == 1 and item_type in products['shippable_products'] and row_data['Shipping Method'] in products['shipping_methods']:
                 CCN_Shipping.CCN_Shipping(self.folder_save, row_data).generate_shipping_label()
-            #NEXT --> Create IF Statement for creating formula calculations and outputting in a file
-
+                
             #NEXT --> Create IF Statement for producing a product label
             if self.product_val.get() == 1 and item_type in products['product_label_products']:
-                #Need product label so there must be flavor
-                blend_compose = {'Flavor':row_data['Lineitem variant']}
-                #Need to define what the label is going to have as its name
-                #Premade blend is variable, others are hardcoded
-                #If blend is custom we need to fast forward lines to get ingredients in blend and store
-                if item_type == 'Build Your Blend base': 
-
-                    #Customized Product Name
-                    product_name = row_data['Checkout Form: Name']
-                    if product_name == '': product_name = 'Build Your Blend'
-
-                    #Need to keep track of ingredients in custom blend
-                    blend_compose['Product Name'] = product_name
+                
+                #Returns the formula composition of ONE blend at a time based on current row
+                blend_composition = formula_calculator.get_formula_breakdown()
+                
+                #If we want to calculate formulas go ahead and append so we dont have to recalculate again later
+                if self.formula_val.get() == 1 and item_type in products['formula_products']:
+                    total_composition = formula_calculator.calc_formulas(blend_composition)
+                    write_out_form.append(total_composition)
                     
-                    row_increment = row_num + 1
-                    #Continue to increment rows until we have all ingredients for premade blend
-                    while row_increment < len(self.csv_df) and not self.csv_df.iloc[row_increment]['Lineitem name'] in products['product_label_products']:
-                        temp_row = self.csv_df.iloc[row_increment]
-                        blend_compose[temp_row['Lineitem name']] = temp_row['Lineitem variant']
-                        row_increment += 1
-                    #Skip over these rows to optimize speed so we arent re-reading for no reason
-                    row_num = row_increment
-                    print("Custom Blend --> " + str(blend_compose))
-
-                #The customer has ordered a premade blend. Will store composition in CCN_Edit.py for easy future customization 
-                else: 
-                    #The pipe command merges two dictionaries together
-                    blend_compose = blend_compose | products[item_type]
-                    print("Pre-Made Blend --> " + str(blend_compose))
-
-                #Now we have the blend composition in a "blend_compose" with everything we should need to produce a label
+                #If it is an else we assume our product is a supplement and not a pre such as creatine, beta-alanine, etc.
+                else:
+                    print('This part needs supplements to begin being purchased to create')
+                #Now we have all of the ingredients we need to generate product label --> START HERE
+                
+                
+            #NEXT --> Create IF Statement for creating formula calculations and outputting in a file
+            #We need to check if product val hasnt already calculated what we need
+            if self.formula_val.get() == 1 and item_type in products['formula_products'] and not self.product_val.get() == 1:
+                blend_composition = formula_calculator.get_formula_breakdown()
+                total_composition = formula_calculator.calc_formulas(blend_composition)
+                write_out_form.append(total_composition)
+            
+        #If the length of our list of formulas is greater than zero we need to write it out to csv file
+        if len(write_out_form) > 0:
+            formula_calculator.write_out_formulas(write_out_form)
+                
 
                 
     
@@ -121,5 +121,3 @@ def main():
     window.mainloop()
 if __name__ == "__main__":
     main()
-    
-
