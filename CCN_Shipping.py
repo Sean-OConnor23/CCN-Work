@@ -14,8 +14,8 @@ class CCN_Shipping():
 
     #Will use EasyPost API and given address info to generate shipping labels
     def generate_shipping_label(self):
-        easypost.api_key = "EZTKd1d7eb2403954c0e84b730efd8d4a020CgJy1M6VEzzLTRlcPvhYpg" #TEST API KEY
-        #easypost.api_key = "EZAKd1d7eb2403954c0e84b730efd8d4a020eBydUBdeNki0arw70VqYSg" #PRODUCTION API KEY
+        easypost.api_key = #TEST API KEY
+        #easypost.api_key = #PRODUCTION API KEY
         
         #The address the shipping label will make for from
         fromAddress = easypost.Address.create(
