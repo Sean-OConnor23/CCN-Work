@@ -20,13 +20,13 @@ class CCN_Shipping():
         #The address the shipping label will make for from
         fromAddress = easypost.Address.create(
             verify = True,
-            company = "Classic Custom Nutrition",
-            street1 = "325 Wrightsburg Ct",
-            city = "Fayetteville",
-            state = "GA",
-            zip = "30215",
-            #phone = "2567770239", #Taking out for the time being
-            country = 'US'
+            company = "",
+            street1 = "",
+            city = "",
+            state = "",
+            zip = "",
+            #phone = "", #Taking out for the time being
+            country = ''
         )
 
         #Created based on user given information
